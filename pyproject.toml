@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "toptl"
+version = "1.0.0"
+description = "Official Python SDK for TOP.TL — the Telegram directory"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    { name = "TOP.TL", email = "hello@top.tl" },
+]
+keywords = ["telegram", "top.tl", "bot", "directory", "sdk"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+async = ["aiohttp>=3.8.0"]
+
+[project.urls]
+Homepage = "https://top.tl"
+Documentation = "https://github.com/nicetl/toptl-sdk-python#readme"
+Repository = "https://github.com/nicetl/toptl-sdk-python"
+Issues = "https://github.com/nicetl/toptl-sdk-python/issues"
