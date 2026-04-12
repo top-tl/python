@@ -1,5 +1,5 @@
 """
-toptl — Official Python SDK for TOP.TL
+toptl -- Official Python SDK for TOP.TL
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The Telegram directory at https://top.tl
@@ -26,7 +26,9 @@ Async usage::
 from .client import TopTL, TopTLError
 from .async_client import AsyncTopTL
 from .autoposter import AutoPoster
+from .integrations import aiogram_middleware, ptb_handler
 from .types import (
+    BatchStatsResponse,
     GlobalStats,
     HasVotedResponse,
     Listing,
@@ -34,6 +36,8 @@ from .types import (
     PostStatsResponse,
     Vote,
     VotesResponse,
+    WebhookResponse,
+    WebhookTestResponse,
 )
 
 __all__ = [
@@ -41,6 +45,9 @@ __all__ = [
     "AsyncTopTL",
     "AutoPoster",
     "TopTLError",
+    "aiogram_middleware",
+    "ptb_handler",
+    "BatchStatsResponse",
     "GlobalStats",
     "HasVotedResponse",
     "Listing",
@@ -48,6 +55,8 @@ __all__ = [
     "PostStatsResponse",
     "Vote",
     "VotesResponse",
+    "WebhookResponse",
+    "WebhookTestResponse",
 ]
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"

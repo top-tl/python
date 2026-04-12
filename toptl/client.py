@@ -7,11 +7,14 @@ import urllib.parse
 from typing import Any, Callable, Dict, List, Optional
 
 from .types import (
+    BatchStatsResponse,
     GlobalStats,
     HasVotedResponse,
     Listing,
     PostStatsResponse,
     VotesResponse,
+    WebhookResponse,
+    WebhookTestResponse,
 )
 from .autoposter import AutoPoster
 
@@ -181,6 +184,59 @@ class TopTL:
         """
         return self._request("GET", "/v1/stats")
 
+    def set_webhook(
+        self,
+        username: str,
+        url: str,
+        *,
+        reward_title: Optional[str] = None,
+    ) -> WebhookResponse:
+        """Set up a webhook for vote notifications.
+
+        Args:
+            username: The Telegram username (without ``@``).
+            url: The webhook URL to receive vote events.
+            reward_title: Optional title shown to users after voting.
+
+        Returns:
+            Confirmation response.
+        """
+        body: Dict[str, Any] = {"url": url}
+        if reward_title is not None:
+            body["rewardTitle"] = reward_title
+
+        return self._request(
+            "PUT",
+            f"/v1/listing/{urllib.parse.quote(username, safe='')}/webhook",
+            body=body,
+        )
+
+    def test_webhook(self, username: str) -> WebhookTestResponse:
+        """Send a test event to the configured webhook.
+
+        Args:
+            username: The Telegram username (without ``@``).
+
+        Returns:
+            Confirmation response.
+        """
+        return self._request(
+            "POST",
+            f"/v1/listing/{urllib.parse.quote(username, safe='')}/webhook/test",
+        )
+
+    def batch_post_stats(self, stats: List[Dict[str, Any]]) -> BatchStatsResponse:
+        """Post stats for multiple listings in one request.
+
+        Args:
+            stats: A list of dicts, each containing ``username`` and stat
+                fields like ``memberCount``, ``groupCount``, etc.
+
+        Returns:
+            Batch confirmation response.
+        """
+        return self._request("POST", "/v1/stats/batch", body=stats)
+
     # ── Autoposter ───────────────────────────────────────────────
 
     def start_autopost(
@@ -189,6 +245,7 @@ class TopTL:
         callback: Callable[[], Dict[str, Optional[int]]],
         *,
         interval: int = 1800,
+        only_on_change: bool = False,
     ) -> AutoPoster:
         """Start automatically posting stats in a background thread.
 
@@ -197,6 +254,8 @@ class TopTL:
             callback: A callable returning a dict with ``member_count``
                 and/or ``group_count`` keys.
             interval: Seconds between posts. Defaults to 1800 (30 min).
+            only_on_change: If True, skip posting when stats have not
+                changed since the last successful post.
 
         Returns:
             The :class:`AutoPoster` instance.
@@ -204,7 +263,9 @@ class TopTL:
         if self._autoposter is not None and self._autoposter.running:
             self._autoposter.stop()
 
-        self._autoposter = AutoPoster(self, username, callback, interval)
+        self._autoposter = AutoPoster(
+            self, username, callback, interval, only_on_change=only_on_change
+        )
         self._autoposter.start()
         return self._autoposter
 

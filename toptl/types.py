@@ -17,6 +17,9 @@ class Listing(TypedDict, total=False):
     category: str
     type: str
     member_count: int
+    group_count: int
+    channel_count: int
+    bot_serves: int
     votes: int
     url: str
     avatar: str
@@ -51,12 +54,35 @@ class PostStatsBody(TypedDict, total=False):
 
     memberCount: int
     groupCount: int
+    channelCount: int
+    botServes: int
 
 
 class PostStatsResponse(TypedDict, total=False):
     """Response from posting stats."""
 
     success: bool
+    retryAfter: int
+
+
+class WebhookResponse(TypedDict, total=False):
+    """Response from webhook setup."""
+
+    success: bool
+    url: str
+
+
+class WebhookTestResponse(TypedDict, total=False):
+    """Response from webhook test."""
+
+    success: bool
+
+
+class BatchStatsResponse(TypedDict, total=False):
+    """Response from batch stats posting."""
+
+    success: bool
+    results: List[Dict[str, Any]]
 
 
 class GlobalStats(TypedDict, total=False):

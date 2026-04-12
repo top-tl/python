@@ -2,14 +2,17 @@
 
 import json
 import urllib.parse
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from .types import (
+    BatchStatsResponse,
     GlobalStats,
     HasVotedResponse,
     Listing,
     PostStatsResponse,
     VotesResponse,
+    WebhookResponse,
+    WebhookTestResponse,
 )
 
 BASE_URL = "https://top.tl/api/v1"
@@ -207,3 +210,58 @@ class AsyncTopTL:
             Global platform stats.
         """
         return await self._request("GET", "/v1/stats")
+
+    async def set_webhook(
+        self,
+        username: str,
+        url: str,
+        *,
+        reward_title: Optional[str] = None,
+    ) -> WebhookResponse:
+        """Set up a webhook for vote notifications.
+
+        Args:
+            username: The Telegram username (without ``@``).
+            url: The webhook URL to receive vote events.
+            reward_title: Optional title shown to users after voting.
+
+        Returns:
+            Confirmation response.
+        """
+        body: Dict[str, Any] = {"url": url}
+        if reward_title is not None:
+            body["rewardTitle"] = reward_title
+
+        return await self._request(
+            "PUT",
+            f"/v1/listing/{urllib.parse.quote(username, safe='')}/webhook",
+            body=body,
+        )
+
+    async def test_webhook(self, username: str) -> WebhookTestResponse:
+        """Send a test event to the configured webhook.
+
+        Args:
+            username: The Telegram username (without ``@``).
+
+        Returns:
+            Confirmation response.
+        """
+        return await self._request(
+            "POST",
+            f"/v1/listing/{urllib.parse.quote(username, safe='')}/webhook/test",
+        )
+
+    async def batch_post_stats(
+        self, stats: List[Dict[str, Any]]
+    ) -> BatchStatsResponse:
+        """Post stats for multiple listings in one request.
+
+        Args:
+            stats: A list of dicts, each containing ``username`` and stat
+                fields like ``memberCount``, ``groupCount``, etc.
+
+        Returns:
+            Batch confirmation response.
+        """
+        return await self._request("POST", "/v1/stats/batch", body=stats)
