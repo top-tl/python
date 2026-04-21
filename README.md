@@ -1,101 +1,52 @@
 # toptl
 
-[![PyPI version](https://img.shields.io/pypi/v/toptl.svg)](https://pypi.org/project/toptl/)
-[![Python versions](https://img.shields.io/pypi/pyversions/toptl.svg)](https://pypi.org/project/toptl/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://img.shields.io/pypi/v/toptl.svg?label=pypi&color=3775a9)](https://pypi.org/project/toptl/)
+[![Python versions](https://img.shields.io/pypi/pyversions/toptl.svg?color=3776ab)](https://pypi.org/project/toptl/)
+[![Downloads](https://img.shields.io/pypi/dm/toptl.svg?color=blue)](https://pypi.org/project/toptl/)
+[![License](https://img.shields.io/pypi/l/toptl.svg?color=green)](https://github.com/top-tl/python/blob/main/LICENSE)
+[![Typed](https://img.shields.io/pypi/types/toptl.svg?color=blue)](https://pypi.org/project/toptl/)
+[![TOP.TL](https://img.shields.io/badge/top.tl-developers-2ec4b6)](https://top.tl/developers)
 
-Official Python SDK for [TOP.TL](https://top.tl) -- the Telegram directory.
+The official Python SDK for **TOP.TL** — post stats, check votes, and manage vote webhooks for your Telegram bot, channel, or group listed on [top.tl](https://top.tl).
 
-## Installation
+## Install
 
 ```bash
 pip install toptl
 ```
 
-For async support:
+Requires Python 3.9+. Depends on `httpx` for transport.
 
-```bash
-pip install toptl[async]
-```
+## Quickstart
 
-## Quick Start
+Get an API key at https://top.tl/profile → **API Keys**. Scope the key to your listing and the operations you need (`listing:read`, `listing:write`, `votes:read`, `votes:check`).
 
 ```python
 from toptl import TopTL
 
 client = TopTL("toptl_xxx")
 
-# Get a listing
+# Fetch a listing
 listing = client.get_listing("mybot")
-print(listing["title"], listing["votes"])
+print(listing.title, listing.vote_count)
 
-# Check votes
-votes = client.get_votes("mybot", limit=10)
-has_voted = client.has_voted("mybot", telegram_id=123456789)
-
-# Post stats
-client.post_stats("mybot", member_count=5000, group_count=120)
-
-# Global stats
-stats = client.get_stats()
-print(stats["total_listings"])
-```
-
-## Webhooks
-
-Set up a webhook to receive vote notifications in real time:
-
-```python
-# Configure the webhook URL
-client.set_webhook("mybot", "https://example.com/webhook/votes")
-
-# Optionally show a reward title after voting
-client.set_webhook("mybot", "https://example.com/webhook/votes", reward_title="Premium for 24h")
-
-# Send a test event to verify your endpoint
-client.test_webhook("mybot")
-```
-
-## Batch Stats
-
-Post stats for multiple listings in a single request:
-
-```python
-client.batch_post_stats([
-    {"username": "bot_one", "memberCount": 5000, "groupCount": 120},
-    {"username": "bot_two", "memberCount": 3200, "channelCount": 45},
-])
-```
-
-## Auto-Post Stats
-
-Automatically post stats in a background thread:
-
-```python
-from toptl import TopTL
-
-client = TopTL("toptl_xxx")
-
-# Auto-post stats every 30 min
-client.start_autopost("mybot", lambda: {"member_count": get_user_count()})
-
-# Only post when values actually change
-client.start_autopost(
+# Post stats on a listing you own
+client.post_stats(
     "mybot",
-    lambda: {"member_count": get_user_count()},
-    only_on_change=True,
+    member_count=5_000,
+    group_count=1_200,
+    channel_count=300,
 )
 
-# ... your bot keeps running ...
-
-# Stop when done
-client.stop_autopost()
+# Reward users who voted
+check = client.has_voted("mybot", user_id=123456789)
+if check.voted:
+    grant_premium_access(user_id=123456789)
 ```
 
-The autoposter also respects `retryAfter` from the server response -- if the
-server tells you to wait longer, the next interval is adjusted automatically.
+## Async
 
-## Async Usage
+Same surface, `asyncio`-native:
 
 ```python
 import asyncio
@@ -103,122 +54,82 @@ from toptl import AsyncTopTL
 
 async def main():
     async with AsyncTopTL("toptl_xxx") as client:
-        listing = await client.get_listing("mybot")
-        print(listing["title"])
-
-        await client.post_stats("mybot", member_count=5000)
-
-        # Webhooks work the same way
-        await client.set_webhook("mybot", "https://example.com/webhook")
-        await client.test_webhook("mybot")
-
-        # Batch stats
-        await client.batch_post_stats([
-            {"username": "bot_one", "memberCount": 5000},
-            {"username": "bot_two", "memberCount": 3200},
-        ])
+        stats = await client.get_global_stats()
+        print(stats.channels, stats.groups, stats.bots)
 
 asyncio.run(main())
 ```
 
-## Aiogram Integration
+## Autoposter
 
-Drop-in middleware for [aiogram](https://docs.aiogram.dev/) that tracks unique
-chat IDs and auto-posts member count every 30 minutes:
+For long-running bot processes, the SDK ships with a background autoposter that calls `post_stats` on an interval and only hits the API when the stats actually changed:
 
 ```python
-from aiogram import Bot, Dispatcher
-from toptl import TopTL, aiogram_middleware
+from toptl import TopTL, Autoposter
 
-bot = Bot(token="BOT_TOKEN")
-dp = Dispatcher()
 client = TopTL("toptl_xxx")
-
-# One line to wire it up
-dp.message.middleware(aiogram_middleware(client, "mybot"))
-
-if __name__ == "__main__":
-    dp.run_polling(bot)
+poster = Autoposter(
+    client,
+    "mybot",
+    callback=lambda: {"member_count": get_user_count()},
+    interval_seconds=30 * 60,   # every 30 min
+    only_on_change=True,
+)
+poster.start()
 ```
 
-## python-telegram-bot Integration
+For cron-style one-shots, skip the autoposter and call `client.post_stats(...)` directly.
 
-Handler for [python-telegram-bot](https://python-telegram-bot.org/) that tracks
-unique chats and posts stats automatically:
+Async version is `AsyncAutoposter(async_client, ..., callback=async_fn)`.
+
+## Vote webhooks
+
+Register a URL TOP.TL will POST to whenever someone votes for your listing:
 
 ```python
-from telegram.ext import ApplicationBuilder
-from toptl import TopTL, ptb_handler
+client.set_webhook(
+    "mybot",
+    url="https://mybot.example.com/toptl-vote",
+    reward_title="30-day premium",   # shown to the voter
+)
 
-client = TopTL("toptl_xxx")
-app = ApplicationBuilder().token("BOT_TOKEN").build()
-
-# Add the tracking handler
-app.add_handler(ptb_handler(client, "mybot"))
-
-app.run_polling()
+# Send a test request to verify your endpoint
+result = client.test_webhook("mybot")
+print(result.success, result.status_code)
 ```
 
-## Error Handling
+The webhook payload contains the voting user (`userId`, `firstName`, `username`), the listing, and a timestamp.
+
+## Batch stats
+
+Post stats for up to 25 listings in one request:
 
 ```python
-from toptl import TopTL, TopTLError
+client.batch_post_stats([
+    {"username": "bot1", "member_count": 1200},
+    {"username": "bot2", "member_count": 5400},
+])
+```
 
-client = TopTL("toptl_xxx")
+## Error handling
+
+Every API error raises a subclass of `TopTLError`:
+
+```python
+from toptl import TopTL, AuthenticationError, NotFoundError, RateLimitError, ValidationError
 
 try:
-    listing = client.get_listing("nonexistent")
-except TopTLError as e:
-    print(f"Error {e.status}: {e}")
-    print(e.body)  # Raw error response
+    client.post_stats("mybot", member_count=5000)
+except AuthenticationError:
+    ...  # bad key, or missing scope
+except NotFoundError:
+    ...  # listing does not exist
+except RateLimitError:
+    ...  # back off and retry
+except ValidationError:
+    ...  # payload rejected — see exc.response_body
 ```
-
-## API Reference
-
-### `TopTL(token, *, base_url=None, timeout=15)`
-
-Synchronous client.
-
-| Method | Description |
-|--------|-------------|
-| `get_listing(username)` | Get listing info |
-| `get_votes(username, *, limit=20)` | Get votes for a listing |
-| `has_voted(username, telegram_id)` | Check if user voted |
-| `post_stats(username, *, member_count=None, group_count=None)` | Post stats |
-| `get_stats()` | Get global TOP.TL stats |
-| `set_webhook(username, url, *, reward_title=None)` | Set vote webhook |
-| `test_webhook(username)` | Send test webhook event |
-| `batch_post_stats(stats)` | Post stats for multiple listings |
-| `start_autopost(username, callback, *, interval=1800, only_on_change=False)` | Start autoposter |
-| `stop_autopost()` | Stop autoposter |
-
-### `AsyncTopTL(token, *, base_url=None, timeout=15)`
-
-Async client with the same methods (all `await`-able). Supports `async with` context manager.
-
-| Method | Description |
-|--------|-------------|
-| `close()` | Close the HTTP session |
-
-### Framework helpers
-
-| Function | Description |
-|----------|-------------|
-| `aiogram_middleware(client, username)` | Aiogram middleware for auto-posting stats |
-| `ptb_handler(client, username)` | python-telegram-bot handler for auto-posting stats |
-
-### Listing fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `username` | `str` | Telegram username |
-| `title` | `str` | Listing title |
-| `member_count` | `int` | Member/subscriber count |
-| `group_count` | `int` | Number of groups the bot is in |
-| `channel_count` | `int` | Number of channels |
-| `bot_serves` | `int` | Number of users the bot serves |
-| `votes` | `int` | Total votes received |
 
 ## License
 
-MIT - see [LICENSE](LICENSE) for details.
+MIT — see `LICENSE`.

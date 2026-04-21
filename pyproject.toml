@@ -1,38 +1,86 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.backends._legacy:_Backend"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "toptl"
-version = "1.1.0"
-description = "Official Python SDK for TOP.TL — the Telegram directory"
+version = "0.1.1"
+description = "Official Python SDK for TOP.TL — post stats, check votes, and manage vote webhooks for your Telegram bot, channel, or group."
 readme = "README.md"
-license = "MIT"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
+license = { text = "MIT" }
 authors = [
-    { name = "TOP.TL", email = "hello@top.tl" },
+    { name = "TOP.TL", email = "hello@top.tl" }
 ]
-keywords = ["telegram", "top.tl", "bot", "directory", "sdk"]
+keywords = [
+    "telegram",
+    "toptl",
+    "top.tl",
+    "bot",
+    "channel",
+    "directory",
+    "autoposter",
+    "stats",
+]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Topic :: Communications :: Chat",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
+dependencies = [
+    "httpx>=0.27",
+]
 
 [project.optional-dependencies]
-async = ["aiohttp>=3.8.0"]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-httpx>=0.30",
+    "mypy>=1.8",
+    "ruff>=0.6",
+    "build>=1.2",
+    "twine>=5.0",
+]
 
 [project.urls]
 Homepage = "https://top.tl"
-Documentation = "https://github.com/nicetl/toptl-sdk-python#readme"
-Repository = "https://github.com/nicetl/toptl-sdk-python"
-Issues = "https://github.com/nicetl/toptl-sdk-python/issues"
+Documentation = "https://top.tl/developers"
+Repository = "https://github.com/top-tl/python"
+Issues = "https://github.com/top-tl/python/issues"
+Changelog = "https://top.tl/changelog"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/toptl"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/toptl/**",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "C4", "PIE"]
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_unreachable = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
